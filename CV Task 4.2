@@ -1,0 +1,45 @@
+#Swapping the face of two people
+#here, pic1 is chris & pic2 is hames
+#pic1part = chris cropped image
+#pic2part = hames cropped image
+
+import cv2
+import numpy 
+o_pic1 = cv2.imread('chris.jpeg')     
+pic1 = cv2.resize(o_pic1,(500,500))
+cv2.imshow('chris',pic1)          # chris resized image will be displayed  
+cv2.waitKey()
+cv2.destroyAllWindows()
+o_pic2 = cv2.imread("hames.jpeg")
+pic2 = cv2.resize(o_pic2,(500,500))
+cv2.imshow('hames',pic2)        # hames resized image will be displayed
+cv2.waitKey()
+cv2.destroyAllWindows()
+pic1part = pic1[70:300,100:380,:]   #pic1 is cropped in pic1part
+print(pic1part.shape)
+
+cv2.imshow('cropped pic 1 ',pic1part)  #pic1part is displayed
+cv2.waitKey()
+cv2.destroyAllWindows()
+pic2part = pic2[110:340,100:380,:]   #pic2 is cropped in pic2part
+print(pic2part.shape)
+cv2.imshow("cropped pic 2",pic2part) #pic2part is displayed
+cv2.waitKey()
+cv2.destroyAllWindows()
+# cropped portion's width and height is same
+# cropping of images are done
+# now the swapping begins
+temp = numpy.zeros((230,280,3))
+temp = pic2part[:,:,:]     # pic2part part is saved im temporary variable
+print(temp)
+cv2.imshow("temp",temp)
+cv2.waitKey()
+cv2.destroyAllWindows()
+pic2[110:340,100:380,:] = pic1part[:,:,:]  # pic2 swapped
+cv2.imshow('swapped pic 2',pic2)    # displayed swapped pic2
+cv2.waitKey()
+cv2.destroyAllWindows()
+pic1[70:300,100:300,:] = temp[:,:,:]  # pic1 swapped
+cv2.imshow('swapped pic1',pic1)       # displayed swapped pic
+cv2.waitKey()
+cv2.destroyAllWindows()
