@@ -1,0 +1,194 @@
+import numpy as np
+import cv2
+import os
+import pywhatkit
+import datetime
+from os import listdir
+from os.path import isfile, join
+import smtplib
+
+
+
+#initializes the object for CascadeClassifier
+face_classifier = cv2.CascadeClassifier('haarcascade_frontalface_default.xml') 
+    
+
+#create a fn. for the face extraction from photo.
+def face_extractor(photo):
+    
+    image = cv2.cvtColor(photo, cv2.COLOR_BGR2GRAY)    
+    
+    #we will apply haarcascade to gray images for detection and Annotation
+    #this face_classifier will detect the actual image of face from the photo, as the ('haarcascade_frontalface_default.xml') loaded in it.
+    #scaleFactor is used to create the image pyramid  and detect face at multiple levels
+    #1.05 scale means image is reduced at various levels of pyramid by 5%
+    #window means layers in the  pyramid.
+    #minNeighbors =  How many neighbors each window should have for the area in the window to be considered a face.
+    #minSize = A tuple of width and height (in pixels) indicating the window’s minimum size. 
+    
+    #detectMultiScale will return the tuple containing detected face attributes
+    faces = face_classifier.detectMultiScale(image,scaleFactor = 1.05 ,minNeighbors = 5,minSize = (30,30),flags = cv2.CASCADE_SCALE_IMAGE)
+    
+    if faces is ():
+        return None
+    
+    #crop the detected face
+    for (x,y,w,h) in faces:
+        cropped_face = image[x:x+w , y:y+h]
+        return cropped_face
+
+import os
+os.getcwd()
+
+directory = 'C:\\Users\\This pc\\Desktop\\MLOPS\\mypictures'
+os.chdir('C:\\Users\\This pc\\Desktop\\MLOPS\\mypictures')
+count = 0
+
+#now we will take 50 sample photos
+
+
+while True:
+    cap = cv2.VideoCapture(0)
+    ret, photo = cap.read()
+    detected_face = face_extractor(photo)    #value returned by face_extractor(photo)
+    if detected_face is not None:        #if true, then face is detected in the photo
+        count = count + 1
+        print("No. of face photo taken",count)
+        
+        face = cv2.resize(detected_face,(600,600))
+        
+        #save the file in specified directory with unique name
+        
+        filename = 'myface' + str(count) + '.jpg'
+        cv2.imwrite(filename,face)
+        
+        #Put count on images and display live count
+        cv2.putText(face, str(count),(50,50), cv2.FONT_HERSHEY_COMPLEX,1,(0,255,78), 5)
+        cv2.imshow('Sample photo are capturing' , face)
+        
+    else:
+        print("Face not found")
+        pass
+    
+    if (cv2.waitKey(1) == 13 or count == 40): #13 is the Enter Key
+        break
+    
+    
+cap.release()
+cv2.destroyAllWindows()
+print("Collecting Samples Complete")
+    
+
+
+#Get the training data we previously made
+data_path = 'C:\\Users\\This pc\\Desktop\\MLOPS\\mypictures'
+onlyfiles = [f for f in listdir(data_path) if isfile(join(data_path,f))]
+
+#array for training data and labels
+Training_Data, Labels = [],[]
+
+#open training images in our datapath
+#create a numpy array for training data
+
+for i, files in enumerate(onlyfiles):
+    image_path = data_path + onlyfiles[i]
+    images = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+    Training_Data.append(np.asarray(images))
+    Labels.append(i)
+    
+    #create a numpy array for both training data and labels
+    Labels = np.asarray(Labels, dtype = np.int32) #asarray to convert input into array
+    
+    #Initialize facial recognizer
+    model = cv2.face.LBPHFaceRecognizer_create()
+    
+    #shristi_model = cv2.face_LBPHFaceRecognizer.create() #to create model
+    #Now train the model
+    model.train(np.asarray(Training_Data), np.asarray(Labels))
+    print("Model trained successfully")
+    
+
+
+
+face_classifier = cv2.CascadeClassifier('haarcascade_frontalface_default.xml')
+
+def face_detector(img, size=0.5):
+    
+    # Convert image to grayscale
+    gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+    faces = face_classifier.detectMultiScale(gray, 1.3, 5)
+    if faces is ():
+        return img, []
+    
+    
+    for (x,y,w,h) in faces:
+        cv2.rectangle(img,(x,y),(x+w,y+h),(0,255,255),2)
+        roi = img[y:y+h, x:x+w]
+        roi = cv2.resize(roi, (200, 200))
+    return img, roi
+
+
+# Open Webcam
+cap = cv2.VideoCapture(0)
+
+while True:
+
+    ret, frame = cap.read()
+    
+    image, face = face_detector(frame)
+    
+    try:
+        face = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
+
+        # Pass face to prediction model
+        # "results" comprises of a tuple containing the label and the confidence value
+        results = model.predict(face)
+        # shristi_model.predict(face)
+        
+        if results[1] < 500:
+            confidence = int( 100 * (1 - (results[1])/400) )
+            
+        
+        if confidence > 80:
+            cv2.putText(image, "Hey Shristi", (220, 120), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 4)
+            cv2.putText(image, "Your Face is Detected", (250, 450), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 4)
+            cv2.imshow('Face Recognition', image )
+            
+            #1.Send whatsapp message
+            data_time_obj = datetime.datetime.now()
+            pywhatkit.sendwhatmsg('+91_____','Your friend face is recognized',date_time_obj) 
+            
+            #2.Send the e-mail
+            sender_mail = '.com'
+            receivers_mail = '.com'
+            message = """From: From Person %s
+            To: To Person %s
+            Subject:Sending SMTP e-mail
+            Your face is recognized
+            """%(sender_mail,receivers_mail)
+            try:
+                smtpObj = smtplib.SMTP('localhost')
+                smtpObj.sendmail(sender_mail,receiver_mail,message)
+                print("Successfully sent mail")
+            except:
+                print("Error:unable to send email")
+            
+            
+            break
+         
+        else:
+            
+            cv2.putText(image, "I dont know, who are you?", (250, 450), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 2)
+            cv2.imshow('Face Recognition', image )
+
+    except:
+        cv2.putText(image, "No face Found", (220, 120) , cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 2)
+        cv2.putText(image, "looking for face", (250, 450), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 2)
+        cv2.imshow('Face Recognition', image )
+        pass
+        
+    if cv2.waitKey(1) == 13: #13 is the Enter Key
+        break
+        
+cap.release()
+cv2.destroyAllWindows()             
